@@ -23,6 +23,7 @@ s1 = df[['area','perimeter']]
 # TODO: Create a 2d scatter plot that graphs the
 # groove and asymmetry features
 #
+
 s1.plot.scatter(x='area', y='perimeter')
 df.plot.scatter(x='groove', y='asymmetry')
 df.plot.scatter(x='compactness', y='width')
