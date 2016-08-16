@@ -1,0 +1,45 @@
+
+# 1
+DropNA + Scale + SVM {g = 0.01 ; c = 10}
+AUC internal = 0.73483
+AUC @ Kaggle = 0.816336
+Rank = 747
+
+
+# 2
+Fill NA with Mean + Scale + SVM {g = 0.01 ; c = 10}
+AUC internal = 0.750704
+AUC @ Kaggle = 0.820993
+Rank = 738
+
+# 3
+Fill NA with Mean + Scale + SVM { GridSearchOptimization} + Train on 10 000 Samples!!
+AUC internal = 0.7336
+AUC @ Kaggle = 0.819090
+Rank = 740
+
+# 4
+Fill NA with Mean + Scale + SVM { GridSearchOptimization} + Train on 3000 Samples!!
+AUC internal = 0.7336
+AUC @ Kaggle = 0.819090
+Rank = 740
+
+# 5
+Fill NA with Mean + Scale + SVM {g = 0.01 ; c = 10} + Train on 20000 Samples!!
+AUC internal = 0.74642
+AUC @ Kaggle = 0.823886
+Rank = 732
+
+# 6
+Fill NA with Mean + Scale + Rand Forest {ntrees=50; max_depth=10, rand_state=7} + Train on Full Sample!!
+AUC internal = 0.77455
+AUC @ Kaggle = 0.842372
+Rank = 680
+
+# 7
+Fill NA with Mean + Scale + Rand Forest { GridSearchOptimization} + Train on Full Sample!!
+AUC internal = 0.78306
+AUC @ Kaggle = 0.8501
+Rank = 654
+
+# 8 
