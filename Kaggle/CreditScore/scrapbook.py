@@ -33,8 +33,8 @@ model = SVC(C=c, gamma=g, kernel='rbf',
             probability=True)
 
 
-model = runModel(model=model, X_train=X_train[0:20000],
-                 y_train=y_train[0:20000], optimize=False, parameters=0,
+model = runModel(model=model, trainX=X_train[0:20000],
+                 trainY=y_train[0:20000], optimize=False, parameters=0,
                  scoring='roc_auc')
 
 
@@ -64,3 +64,11 @@ model = GradientBoostingClassifier(loss='deviance', learning_rate=0.3,
 
 model = runModel(model=model, trainX=X_train, trainY=y_train,
                  optimize=False, parameters=parameters, scoring='roc_auc')
+
+# Rand Forest
+parameters = {'n_estimators': [100, 200], 'max_depth': [7, 15],
+              'min_samples_leaf': [5, 10], 'oob_score': [True, False]}
+
+model = RandomForestClassifier(random_state=7, class_weight='balanced')
+model = runModel(model=model, trainX=X_train[0:1000], trainY=y_train[0:1000],
+                 optimize=True, parameters=parameters, scoring='roc_auc')

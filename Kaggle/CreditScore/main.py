@@ -13,7 +13,8 @@ from sklearn.cross_validation import train_test_split
 from sklearn import preprocessing, grid_search
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.svm import SVC
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, VotingClassifier
+
 import sklearn.metrics as metrics
 from helpers import runModel, report, drawVectors, submission
 
@@ -61,7 +62,6 @@ print 'Percentage of Overdue(risky) Credits:', round(t * 100, 2), '%'
 
 # PCA
 # TODO: Class is unblanaced, we should discard over represented records
-# that are coehese.
 
 if plot_pca:
 
@@ -87,18 +87,33 @@ X_train, X_test, y_train, y_test = train_test_split(train,
                                                     random_state=7)
 
 ### Model
-parameters = {'n_estimators': [100, 200], 'max_depth': [7, 15],
-              'min_samples_leaf': [5, 10], 'oob_score': [True, False]}
+# TODO: Find optimal weights for voting. ATM AUC is lower than expected!!!
+m1 = SVC(C=10, gamma=0.01, kernel='rbf',
+         class_weight='balanced',
+         probability=True)
 
-model = RandomForestClassifier(random_state=7, class_weight='balanced')
-model = runModel(model=model, trainX=X_train[0:1000], trainY=y_train[0:1000],
-                 optimize=True, parameters=parameters, scoring='roc_auc')
+m2 = RandomForestClassifier(random_state=7, class_weight='balanced',
+                            n_estimators=200, oob_score=True,
+                            criterion='entropy', max_depth=7,
+                            min_samples_leaf=10, n_jobs=3)
+
+m3 = GradientBoostingClassifier(loss='deviance', learning_rate=0.3,
+                                n_estimators=200, max_depth=7,
+                                min_samples_leaf=10, random_state=7,
+                                max_features=None, verbose=1)
+
+model = VotingClassifier(weights=[4, 5, 1], voting='soft',
+                         estimators=[('SVM', m1), ('Rnd Forest', m2),
+                                     ('Grad Boost', m3)])
+
+model = runModel(model=model, trainX=X_train[0:30000], trainY=y_train[0:30000],
+                 optimize=False, parameters=None, scoring='roc_auc')
 
 
-print "Applying Classifier..."
+print "Applying Model ..."
 start = time()
 y_pred = model.predict(X_test)
-print("SVM took %.2f seconds to predict vals" % (time() - start))
+print("Model took %.2f seconds to predict vals" % (time() - start))
 
 
 ### Evaluation
@@ -111,7 +126,7 @@ auc = metrics.roc_auc_score(y_test, y_pred, average='macro')
 confusion = metrics.confusion_matrix(y_test, y_pred, labels=[0, 1])
 
 print "Score: \t \t Recall: \t AUC:\n", score, recall, auc
-print("SVM took %.2f seconds to score" % (time() - start))
+print("Model took %.2f seconds to score" % (time() - start))
 
 if plot_roc:
 
