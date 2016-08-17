@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import math
 import pandas as pd
+from time import time
 from sklearn import preprocessing
 
 
@@ -56,7 +57,7 @@ def report(grid_scores, n_top):
 
 
 # Run Model
-def runModel(model, X_train, y_train, optimize, parameters, scoring):
+def runModel(model, trainX, trainY, optimize, parameters, scoring):
 
     from time import time
     from sklearn import grid_search
@@ -70,9 +71,9 @@ def runModel(model, X_train, y_train, optimize, parameters, scoring):
 
         print "Fitting Model & Optizing Parameters..."
         start = time()
-        classifier.fit(X_train, y_train)
-        print("GridSearchCV took %.2f seconds for %d candidate" +
-              "parameter settings."
+        classifier.fit(trainX, trainY)
+        print("GridSearchCV took %.2f seconds for %d "
+              "candidate parameter settings."
               % (time() - start, len(classifier.grid_scores_)))
         report(classifier.grid_scores_, n_top=5)
         model = classifier.best_estimator_
@@ -81,7 +82,41 @@ def runModel(model, X_train, y_train, optimize, parameters, scoring):
 
         print "Fitting Model..."
         start = time()
-        model.fit(X_train, y_train)
+        model.fit(trainX, trainY)
         print("Model took %.2f seconds to fit" % (time() - start))
 
     return model
+
+
+# Submission
+def submission(read_path, model, write_path):
+
+    print "Reading testing file from path: \n{0}".format(read_path)
+    test = pd.read_csv(read_path)
+
+    test['has_dependents'] = 0
+    test.loc[test.NumberOfDependents != 0, 'has_dependents'] = 1
+    test['late_90_days'] = 0
+    test.loc[test.NumberOfTimes90DaysLate != 0, 'late_90_days'] = 1
+    test['income_per_capita'] = test.MonthlyIncome
+    val = test.MonthlyIncome/test.NumberOfDependents
+    test.loc[test.NumberOfDependents > 0, 'income_per_capita'] = val
+    test = test.drop(['Unnamed: 0', 'SeriousDlqin2yrs'], axis=1)
+    test = test.fillna(test.mean())
+    scaled = preprocessing.scale(test)
+
+    test = pd.DataFrame(scaled, columns=test.columns)
+
+    # Apply Prediction
+    print "Applying Model ..."
+    start = time()
+    y_pred = model.predict_proba(test)
+    y_vals = model.predict(test)
+    print("Model took %.2f seconds to apply" % (time() - start))
+
+    # Write csv
+    sub = pd.DataFrame(y_pred[:, 1], columns=['Probability'])
+    sub['Id'] = range(1, 101504, 1)
+    sub = sub[['Id', 'Probability']]
+    sub.to_csv(write_path, sep=',', index=False)
+    print 'Sample ready for Submission, GL!'
