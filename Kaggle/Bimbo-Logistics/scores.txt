@@ -1,0 +1,31 @@
+# -*- coding: utf-8 -*-
+"""
+@author: miguelserrano
+"""
+
+###
+Internal Scores @ Agency 1911
+###
+
+1. Dec Tree with only Brand Dummied Out
+
+Fitting Model...
+Model took 2.32 seconds to fit
+Applying Model ...
+Model took 0.03 seconds to predict vals
+Scoring Classifier...
+Mean Absl. Err:  Mean Sqr Err:   R2:
+2.31619978512   37.8056523676   0.33876799631
+Model took 0.01 seconds to score
+
+
+2. Dec Tree with Brand AND product_type Dummied Out
+
+Fitting Model...
+Model took 4.87 seconds to fit
+Applying Model ...
+Model took 0.11 seconds to predict vals
+Scoring Classifier...
+Mean Absl. Err:  Mean Sqr Err:   R2:
+2.28540918739   35.0230732947   0.387436124501
+Model took 0.00 seconds to score

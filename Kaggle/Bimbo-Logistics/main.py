@@ -1,29 +1,46 @@
 from time import time
-import numpy as np
 import pandas as pd
 from preprocessing import transform_data, join_clean_product
 from sklearn.cross_validation import train_test_split
 from sklearn.tree import DecisionTreeRegressor
 import sklearn.metrics as metrics
-from helpers import runModel, report
+from helpers import runModel
 
 
 ### Read Data
-#p = '/home/miguelserrano/Projects/Data/Kaggle/BimboLogistics/Data/train.csv'
-#train = train.loc[x.Agencia_ID == 1110, ]
-
-#train.to_csv('/home/miguelserrano/Projects/Data/Kaggle/BimboLogistics/Data/'
-#             'train_agencia_1110.csv', index=False)
-
-p = '/home/miguelserrano/Projects/Data/Kaggle/BimboLogistics/Data/' \
-    'train_agencia_1110.csv'
+p = '/home/miguelserrano/Projects/Data/Kaggle/BimboLogistics/Data/train.csv'
+print 'Reading Data ...'
+start = time()
 train = pd.read_csv(p)
+print("Data took %.2f seconds to Read" % (time() - start))
+
+
+### Data Management
+print 'Writing Partitions to Disk ...'
+
+start = time()
+for i in train.Agencia_ID.unique():
+    print 'Subsetting & Writing Agencia', i
+    p = '/home/miguelserrano/Projects/Data/Kaggle/BimboLogistics/Data/' \
+        'Agencies/{0}_agencia_train.csv'.format(i)
+    train.query('Agencia_ID == {0}'.format(i)).to_csv(p, index=False)
+    print 'Done with ', i
+
+print("Data Partition/Write took %.2f seconds" % (time() - start))
+
+
+###
+# SAMPLE DOWNSIZED TO AGENCY 1911
+train = train.loc[train.Agencia_ID == 1911, ]
+###
 
 
 ### Preprocess
-
 # Transform training data by exploding columnns [demand, return] by week nr
+print 'Transforming training Data ...'
+start = time()
 train = transform_data(trainData=train)
+print("Training Data took %.2f seconds to Transform" % (time() - start))
 
 # Cities
 p = '/home/miguelserrano/Projects/Data/Kaggle/BimboLogistics/Data/' \
@@ -34,13 +51,23 @@ cities = pd.read_csv(p)
 p = '/home/miguelserrano/Projects/Data/Kaggle/BimboLogistics/Data/' \
     'producto_tabla.csv'
 
+print 'Transforming Product Data and Joining...'
+start = time()
 products, train = join_clean_product(path=p, train_data=train)
-
+print("Transf/Join Product Data took %.2f seconds" % (time() - start))
 
 # Attributes must be numerical...
+# TODO: Find a faster way to categorize lists within data frame
+print 'Transforming Nominal Vars to Numerical ...'
+start = time()
 brand = train.brand.apply(lambda x: pd.Series(x[0]))
 brand = pd.get_dummies(brand)
 train = pd.concat([train, brand], axis=1)
+print("Nominal Vars to Numerical took %.2f seconds" % (time() - start))
+
+# This way is MUCH FASTER
+train = pd.concat([train, pd.get_dummies(train.prod_split)], axis=1)
+
 
 # Drop unused columns
 train.drop(['Agencia_ID', 'brand', 'prod_split'], axis=1, inplace=True)
@@ -77,5 +104,5 @@ mae = metrics.mean_absolute_error(y_test, y_pred)
 mse = metrics.mean_squared_error(y_test, y_pred)
 r2_score = metrics.r2_score(y_test, y_pred)
 
-print "Mean Absl. Err:  Mean Avg Err: \t R2:\n", mae, '\t', mse, '\t', r2_score
+print "Mean Absl. Err:  Mean Sqr Err: \t R2:\n", mae, '\t', mse, '\t', r2_score
 print("Model took %.2f seconds to score" % (time() - start))
