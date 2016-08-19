@@ -2,11 +2,11 @@
 """
 @author: miguelserrano
 """
-
 import pandas as pd
+from time import time
 
 
-def transform_data(trainData):
+def transform_train_data(trainData):
 
     y = trainData.pivot_table(index=['Agencia_ID',
                                      'Canal_ID',
@@ -34,6 +34,48 @@ def transform_data(trainData):
         X[new_ret] = list(y.Dev_uni_proxima.iloc[:, pos])
 
     return X
+
+
+def transform_test_data(read_path, trainData, write_path):
+
+    print "Reading testing file from path: \n{0}".format(read_path)
+    start = time()
+    test = pd.read_csv(read_path)
+    print("Read Data took %.2f seconds" % (time() - start))
+
+    print 'Pivoting Data'
+    start = time()
+    y = test.pivot_table(index=['Agencia_ID',
+                                'Canal_ID',
+                                'Ruta_SAK',
+                                'Cliente_ID',
+                                'Producto_ID'],
+                         columns='Semana', fill_value=0)
+
+    print("Pivoting Data took %.2f seconds" % (time() - start))
+
+    X = pd.DataFrame({'Agencia_ID': y.index.get_level_values(0),
+                      'Canal_ID': y.index.get_level_values(1),
+                      'Ruta_SAK': y.index.get_level_values(2),
+                      'Cliente_ID': y.index.get_level_values(3),
+                      'Producto_ID': y.index.get_level_values(4)}
+                     )
+
+    # Pre Process
+    on_col = ['Agencia_ID', 'Canal_ID', 'Cliente_ID',
+              'Producto_ID', 'Ruta_SAK']
+
+    print '\nThis will sound awkward ...... \n'
+    print 'Joining Train Data with Testing'
+    start = time()
+    test = pd.merge(left=X,
+                    right=trainData, on=on_col, right_index=False, how='left')
+
+    print ("Join took %.2f seconds" % (time() - start))
+    print "Writing test data to path: \n{0}".format(write_path)
+    test.to_csv(write_path, index=False)
+
+    return test
 
 
 def join_clean_product(path, train_data):
@@ -75,3 +117,5 @@ def join_clean_product(path, train_data):
     data = pd.merge(left=train_data, right=products, on='Producto_ID')
 
     return products, data
+
+

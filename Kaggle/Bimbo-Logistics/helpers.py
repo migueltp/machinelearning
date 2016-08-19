@@ -88,3 +88,19 @@ def runModel(model, trainX, trainY, optimize, parameters, scoring):
 
 
 # TODO: Submission function
+def submission(read_path, model, write_path):
+
+    
+    # Apply Prediction
+    print "Applying Model ..."
+    start = time()
+    y_pred = model.predict_proba(test)
+    y_vals = model.predict(test)
+    print("Model took %.2f seconds to apply" % (time() - start))
+
+    # Write csv
+    sub = pd.DataFrame(y_pred[:, 1], columns=['Probability'])
+    sub['Id'] = range(1, 101504, 1)
+    sub = sub[['Id', 'Probability']]
+    sub.to_csv(write_path, sep=',', index=False)
+    print 'Sample ready for Submission, GL!'
