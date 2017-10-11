@@ -70,6 +70,10 @@ preProcess = function(data_obj){
     as.POSIXct(lag_contact, format = "%d%b%Y:%H:%M:%S"),
     units = 'hours')), 2)]
   
+  # Is First attempt
+  data_obj[, first_contact := 0]
+  data_obj[diff_between_contacts == -1, first_contact := 1]
+  
   # Binning of Hours between contact attempts
   # TODO: time between contacts does not consider contact center working hours and it should.
   data_obj[diff_between_contacts >= 24, diff_contacts_bin := '[24 - +Inf[']
@@ -78,12 +82,8 @@ preProcess = function(data_obj){
   data_obj[diff_between_contacts %between% c(2, 5.99), diff_contacts_bin := '[02 - 06[']
   data_obj[diff_between_contacts %between% c(0.5, 2), diff_contacts_bin := '[0.5 - 02[']
   data_obj[diff_between_contacts < 0.5, diff_contacts_bin := '[0 - 0.5[']
-  
+  data_obj[first_contact == 1, diff_contacts_bin := 'First Contact']
   data_obj[, lag_contact:= NULL]
-  
-  # Is First attempt
-  data_obj[, first_contact := 0]
-  data_obj[diff_between_contacts == -1, first_contact := 1]
   
   # Target variable
   # TODO: Handled has multiple reasons that might not belong to handled (ex: ~ 17% Sem contacto)

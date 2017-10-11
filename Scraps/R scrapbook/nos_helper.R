@@ -12,6 +12,93 @@ df_hist[, sum(target) / .N, by = day_of_week]
 df_hist[, sum(target) / .N, by = day_of_week]
 
 
+# Call Center Nr attempts by caller ID (origin)
+# Call Center Success rate by Known vs Unknown
+# Call Center Same network VS different network Success Rate
+p <- ggplot(data = df_hist[, (.N / nrow(df_hist)), by = indic_tlf_ori_A][order(-V1)], 
+            aes(x = indic_tlf_ori_A, y = V1)) +
+  geom_bar(stat = "identity", fill = 'grey') +
+  geom_text(aes(label = indic_tlf_ori_A), vjust = 1.5, colour = "white")
+p = p + 
+  aes(x = fct_inorder(indic_tlf_ori_A)) + 
+  ggtitle('Nr attempts by caller ID') + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab('Caller ID') +
+  ylab('Relative frequency (%)')
+ggsave(filename = 'Nr attempts by caller ID.png', 
+       width=20, height = 20, units = 'cm', 
+       plot = p, 
+       device = 'png',
+       scale = 1)
+# Call Center Success rate by Known vs Unknown
+p <- ggplot(data = df_hist[, sum(target) / nrow(df_hist), by = is_unknown][order(-V1)], 
+            aes(x = is_unknown, y = V1, fill = is_unknown)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = is_unknown), vjust = 1.5, colour = "white")
+p = p + 
+  aes(x = fct_inorder(is_unknown)) + 
+  ggtitle('Success Rate by Known vs Unknown Caller') + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab('Known(0) VS Unknown(1)') +
+  ylab('Handle Success Rate (%)')
+ggsave(filename = 'Success rate by Known vs Unknown.png', 
+       width=20, height = 20, units = 'cm', 
+       plot = p, 
+       device = 'png',
+       scale = 1)
+# Same network operator Success Rate
+df_hist$same_network <- factor(df_hist$same_network, levels= c("1", "0"))
+p <- ggplot(data = df_hist[, sum(target) / .N, by = same_network][order(same_network)], 
+            aes(x = same_network, y = V1, fill=same_network)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = same_network), vjust = 1.5, colour = "white")
+p = p + 
+  ggtitle('Success Rate by Same Network Operator') + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab('Same Operator(1) VS Different Operator(0)') +
+  ylab('Handle Success Rate (%)')
+ggsave(filename = 'Same network operator Success Rate.png', 
+       width=20, height = 20, units = 'cm', 
+       plot = p, 
+       device = 'png',
+       scale = 1)
+
+
+
+
+# Call Center Success rate by caller ID (destination)
+# Call Center Nr attempts TO caller ID (destination)
+df_hist$indic_tlf_dest_A <- factor(df_hist$indic_tlf_dest_A)
+p <- ggplot(data = df_hist[, (.N / nrow(df_hist)), by = indic_tlf_dest_A][order(-V1)], 
+            aes(x = indic_tlf_dest_A, y = V1)) +
+  geom_bar(stat = "identity", fill = 'grey') +
+  geom_text(aes(label = indic_tlf_dest_A), vjust = 1.5, colour = "white")
+p = p + 
+  ggtitle('Nr attempts by Operator ID (destination)') + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab('Destination Operator ID') +
+  ylab('Relative frequency (%)')
+ggsave(filename = 'Nr attempts TO caller ID (destination).png', 
+       width=20, height = 20, units = 'cm', 
+       plot = p, 
+       device = 'png',
+       scale = 1)
+# Call Center Success rate TO caller ID (destination)
+p <- ggplot(data = df_hist[, (sum(target) / .N ), by = indic_tlf_dest_A][order(-V1)], 
+            aes(x = indic_tlf_dest_A, y = V1)) +
+  geom_bar(stat = "identity", fill = 'lightgreen') +
+  geom_text(aes(label = indic_tlf_dest_A), vjust = 1.5, colour = "white")
+p = p + 
+  ggtitle('Success Rate by Operator ID (destination)') + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab('Destination Operator ID') +
+  ylab('Handle Success Rate (%)')
+ggsave(filename = 'Success Rate TO caller ID (destination).png', 
+       width=20, height = 20, units = 'cm', 
+       plot = p, 
+       device = 'png',
+       scale = 1)
+
 
 # Call Center Distribution of Nr Attemps
 # Call Center Handle Success Rate by Nr Attempts
@@ -46,6 +133,7 @@ ggsave(filename = 'Handle Success Rate by Nr Attempts.png',
        plot = p, 
        device = 'png',
        scale = 1)
+
 
 
 # Call Center Occupancy by hour of day
@@ -99,6 +187,7 @@ ggsave(filename = 'Success Rate by Moment in Day.png',
        scale = 1)
 
 
+
 # Call Center Occupancy by Day of Week
 # Call Center Success Rate by Day of Week
 df_hist$day_of_week <- factor(df_hist$day_of_week, levels= c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"))
@@ -141,7 +230,7 @@ ggsave(filename = 'Success Rate by Day_of_Week.png',
 # Call Center Success Rate by time interval between attempts
 p <- ggplot(data = df_hist[, .N / nrow(df_hist), by = diff_contacts_bin][order(diff_contacts_bin)], 
             aes(x = diff_contacts_bin, y = V1)) +
-  geom_bar(stat = "identity", fill = 'lightgreen') +
+  geom_bar(stat = "identity", fill = 'grey') +
   geom_text(aes(label = diff_contacts_bin), vjust = 1.5, colour = "white")
 p = p + 
     ggtitle('Attempts by time interval between attempts') + 
@@ -168,3 +257,4 @@ ggsave(filename = 'Success_Rate_lag_between_attempts.png',
        plot = p, 
        device = 'png',
        scale = 1)
+
