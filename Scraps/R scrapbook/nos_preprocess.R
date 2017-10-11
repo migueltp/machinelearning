@@ -98,6 +98,7 @@ preProcess = function(data_obj){
 removeDependentVars = function(data_obj) {
 
   print('Removing dependent variables - Start')
+  data_obj[, base := NULL]
   data_obj[, tipificacao := NULL]
   data_obj[, duracao := NULL]
   data_obj[, outcome := NULL]
