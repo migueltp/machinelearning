@@ -6,126 +6,178 @@ library(adabag)
 library(e1071)
 require(randomForest)
 
-
 setwd('~/Projects/machinelearning/Scraps/R scrapbook/') 
 source(file = paste(getwd(), '/nos_preprocess.R', sep = ''))
+source(file = paste(getwd(), '/nos_models.R', sep = ''))
+
 df = fread(input='~/data_store/ds/DESAFIO_ML_1.txt')
 
+# Get train data
 df_train = df[df$base == 'Treino']
-# df_test = df[df$base == 'Teste']
-# df = df[! df$base %in% c('Teste', 'Treino')]
 
 
-
-df_train = preProcess(data_obj = df_train)
-# df_hist = preProcess(data_obj = df)
-
+# Pre Process
+df_train = preProcess(data_obj = df_train, preProcess_scope = 'model')
 
 
 ### MODELLING
 # Remove variables dependent to target or unavailable in test DF
-df_train = df_train[! indic_tlf_dest_A %in% c(0, 29, 31, 82)]
 df_train = removeDependentVars(data_obj = df_train)
-# for (i in seq_along(df_train)) set(df_train, i=which(is.na(df_train[[i]])), j=i, value="X")
-# for (i in seq_along(df_train)) set(df_train, i=which(df_train[[i]] == ''), j=i, value="X")
-# df_train[, lapply(.SD, function(x) sum(x == 'X')), .SDcols = 1:ncol(df_train)]
 
+# Balance data
+df_train = balanceData(data_obj = df_train, pos_ratio = 0.4, neg_ratio = 0.6)
+
+# Split Train, test, validation
+nr_cases = 10000
 train_ratio = 0.6
-test_ratio = 0.3
-val_ratio = 0.1
+test_ratio = 0.4
+val_ratio = 0
 set.seed(1)
-index_split = splitTrainData(data_obj = df_train, 
-                             train = train_ratio, 
-                             test = test_ratio, 
-                             validation = val_ratio)
-
-df_train$target = as.character(df_train$target)
-char_cols = names(which(sapply(df_train, class) == 'character'))
-df_train = df_train[, lapply(.SD, factor), .SDcols = char_cols]
-trainData = df_train[index_split[['train']]]
-testData = df_train[index_split[['test']]]
 
 
+### NAIVE BAYES
+for (size in c(1000, 2000, 5000, 10000, 15000, 20000, 30000, 50000)) {
+  
+  index_split = splitTrainData(data_obj = df_train, 
+                               sample_size = size,
+                               train = train_ratio, 
+                               test = test_ratio, 
+                               validation = val_ratio)
 
+  res = naiveBayesModel(trainData = df_train[index_split[['train']]], 
+                        testData = df_train[index_split[['test']]], 
+                        misclassCosts = 0.5,
+                        kwd_args = list())['results']
+  if (! exists("naive_res")) {
+    naive_res = as.data.table(res)
+  }
+  
+  naive_res = rbind(naive_res, as.data.table(res))
 
-t = Sys.time()
-model = naiveBayes(x = as.data.frame(trainData[, -10]),
-                   y = trainData$target,
-                   type = c("class", "raw"))
-print(paste('Training Done. Elapsed ::', round(Sys.time() - t, 2), sep = ''))
-t = Sys.time()
-adTrainPred <- predict(model, as.data.frame(trainData[1:10000]), type='raw')
-print(paste('Predicting Done. Elapsed ::', round(Sys.time() - t, 2), sep = ''))
-
-adTrainProb <- data.table(NO = adTrainPred[,1], YES = adTrainPred[,2])
-misclassCosts = 0.50
-adTrainProb[, Vote:= ifelse(NO > misclassCosts,'NO','YES')]
-
-# At least one YES Classification
-if(adTrainProb[Vote == 'NO', .N] == nrow(adTrainProb)) {
-  adTrainProb[1, Vote:= 'YES']
 }
-# Confusion Matrix
 
-tbTrain <<- table(adTrainProb[,Vote], trainData$target[1:10000])
-# Global Accuracy
-errorTrain <- 1-(sum(diag(tbTrain))/sum(tbTrain))
-# Recall at Positive class
-recallTrain <- tbTrain[2,2]/sum(tbTrain[,2])
-
-
-
-
-
-
-
-
-model <- rpart(target ~.,as.data.frame(trainData),
-                    maxdepth=20,
-                    parms = list(split = 'information'),
-                    # cp=-1,
-                    xval=10,
-                    # maxcompete=3,
-                    method = 'class',
-                    minsplit=50,
-                    minbucket=10)
-# adaboostModel <- boosting(target ~., as.data.frame(trainData[1:10000]),mfinal=10, control=rpart.control(maxdepth=30))
-print(paste('Training Done. Elapsed ::', round(Sys.time() - t, 2), sep = ''))
-
-adTrainPred <- predict(model, as.data.frame(X), type='raw')
-
-### @ Training Set
-# Apply Model
-adTrainPred <- predict(model, as.matrix(trainData[, -1]),type="prob")
-adTrainProb <- data.table(NO = adTrainPred$prob[,1], YES = adTrainPred$prob[,2])
-misclassCosts = 0.50
-adTrainProb[, Vote:= ifelse(NO > misclassCosts,'NO','YES')]
-
-# At least one YES Classification
-if(adTrainProb[Vote == 'NO', .N] == nrow(adTrainProb)) {
-  adTrainProb[1, Vote:= 'YES']
+### DEC TREE
+for (size in c(1000, 2000, 5000, 10000, 15000, 20000, 30000, 50000)) {
+  
+  index_split = splitTrainData(data_obj = df_train, 
+                               sample_size = size,
+                               train = train_ratio, 
+                               test = test_ratio, 
+                               validation = val_ratio)
+  
+  res = dtModel(trainData = df_train[index_split[['train']]], 
+                testData = df_train[index_split[['test']]], 
+                misclassCosts = 0.5,
+                kwd_args = list('maxdepth' = 30,
+                               'cp' = -1))['results']
+  
+  if (! exists("dt_res")) {
+    dt_res = as.data.table(res)
+  }
+  
+  dt_res = rbind(dt_res, as.data.table(res))
+  
 }
-# Confusion Matrix
 
-tbTrain <<- table(adTrainProb[,Vote], trainData$target[1:1000])
-# Global Accuracy
-errorTrain <- 1-(sum(diag(tbTrain))/sum(tbTrain))
-# Recall at Positive class
-recallTrain <- tbTrain[2,2]/sum(tbTrain[,2])
-tbTrain
+### ADABOOST
+for (size in c(1000, 2000, 5000, 10000, 15000, 20000, 30000, 50000)) {
+  
+  index_split = splitTrainData(data_obj = df_train, 
+                               sample_size = size,
+                               train = train_ratio, 
+                               test = test_ratio, 
+                               validation = val_ratio)
+  
+  res = adaboostModel(trainData = as.data.frame(df_train[index_split[['train']]]), 
+                        testData = as.data.frame(df_train[index_split[['test']]]), 
+                        misclassCosts = 0.5,
+                        kwd_args = list())['results']
+
+  if (! exists("adab_res")) {
+    adab_res = as.data.table(res)
+  }
+  
+  adab_res = rbind(adab_res, as.data.table(res))
+  
+}
+
+### RAND FORESTS
+for (size in c(1000, 2000, 5000, 10000, 15000, 20000, 30000, 50000)) {
+  
+  index_split = splitTrainData(data_obj = df_train, 
+                               sample_size = size,
+                               train = train_ratio, 
+                               test = test_ratio, 
+                               validation = val_ratio)
+  
+  res = randForestModel(trainData = as.data.frame(df_train[index_split[['train']]]), 
+                        testData = as.data.frame(df_train[index_split[['test']]]), 
+                        misclassCosts = 0.5,
+                        kwd_args = list())['results']
+  
+  if (! exists("randf_res")) {
+    randf_res = as.data.table(res)
+  }
+  
+  randf_res = rbind(randf_res, as.data.table(res))
+  
+}
 
 
-t = Sys.time()
-# rpartModel <- rpart(target ~.,trainData, 
-#                     maxdepth=20,
-#                     parms = list(split = 'information'),
-#                     cp=-1,
-#                     xval=10,
-#                     maxcompete=3,
-#                     method = 'class',
-#                     minsplit=50,
-#                     minbucket=10)
+# PLOT ROC CURVES
+
+naive_res = naive_res[order(`results.True Positive Rate`)]
+dt_res = dt_res[order(`results.True Positive Rate`)]
+
+p <- ggplot(data = naive_res, 
+            aes(x = naive_res$`results.False Positive Rate`,y = naive_res$`results.True Positive Rate`)) +
+            xlim(0, 1) + ylim(0, 1) +
+            geom_line(stat = 'identity', colour='green') +
+            geom_abline(intercept = 0, slope = 1, show.legend = NA) + 
+            geom_text(aes(x = 0.20, y = 0.45, label = "Naive B."), colour = 'green', show.legend=FALSE)
+
+p = p +
+            geom_line(aes(x = dt_res$`results.False Positive Rate`, 
+                          y = dt_res$`results.True Positive Rate`, 
+                          colour='red'), data = dt_res) +
+            geom_text(aes(x = 0.38, y = 0.55, label = "Dec Tree"), colour = 'red', show.legend=FALSE)
+
+p = p + 
+  ggtitle('ROC curves for Balanced Data') + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab('False Positive Rate') +
+  ylab('True Positive Rate')
+ggsave(filename = 'ROC curves Balanced.png', 
+       width=20, height = 20, units = 'cm', 
+       plot = p, 
+       device = 'png',
+       scale = 1)
 
 
-adaboostModel <- boosting(target ~., as.data.frame(trainData[1:10000]),mfinal=10, control=rpart.control(maxdepth=30))
-print(paste('Training Done. Elapsed ::', round(Sys.time() - t, 2), sep = ''))
+### Adaboost, Rand Forest
+naive_res = naive_res[order(`results.True Positive Rate`)]
+dt_res = dt_res[order(`results.True Positive Rate`)]
+
+p <- ggplot(data = naive_res, 
+            aes(x = naive_res$`results.False Positive Rate`,y = naive_res$`results.True Positive Rate`)) +
+  xlim(0, 1) + ylim(0, 1) +
+  geom_line(stat = 'identity', colour='green') +
+  geom_abline(intercept = 0, slope = 1, show.legend = NA) + 
+  geom_text(aes(x = 0.20, y = 0.45, label = "Naive B."), colour = 'green', show.legend=FALSE)
+
+p = p +
+  geom_line(aes(x = dt_res$`results.False Positive Rate`, 
+                y = dt_res$`results.True Positive Rate`, 
+                colour='red'), data = dt_res) +
+  geom_text(aes(x = 0.38, y = 0.55, label = "Dec Tree"), colour = 'red', show.legend=FALSE)
+
+p = p + 
+  ggtitle('ROC curves for Balanced Data') + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab('False Positive Rate') +
+  ylab('True Positive Rate')
+ggsave(filename = 'ROC curves Balanced.png', 
+       width=20, height = 20, units = 'cm', 
+       plot = p, 
+       device = 'png',
+       scale = 1)

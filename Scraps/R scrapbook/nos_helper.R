@@ -1,8 +1,28 @@
 library(ggplot2)
 library(forcats)
+library(data.table)
+
+
+setwd('~/Projects/machinelearning/Scraps/R scrapbook/') 
+source(file = paste(getwd(), '/nos_preprocess.R', sep = ''))
+
+
+df = fread(input='~/data_store/ds/DESAFIO_ML_1.txt')
+df_hist = preProcess(data_obj = df[base == 'Hist'], preProcess_scope='prelim_analysis')
+
 
 ### SCRAPBOOK
+df_train = df[df$base == 'Treino']
+df_hist = df[base == 'Hist']
+df_test = df[base == 'Teste']
+
+df_train[id_Cliente_A %in% df_hist$id_Cliente_A]
+df_test[id_Cliente_A %in% df_train$id_Cliente_A]
+
 hist(df_hist$nr_contacts)
+df_hist[is_unknown == 1]
+length(df[indic_tlf_dest_A == '29', unique(id_Cliente_A)])
+df_hist[first_contact == 1, sum(target) / .N]
 
 ### Data Analysis
 df_hist[, sum(target) / .N, by = is_unknown] # -->>> All calls should be made from a recognizable phone NR
@@ -103,9 +123,9 @@ ggsave(filename = 'Success Rate TO caller ID (destination).png',
 # Call Center Distribution of Nr Attemps
 # Call Center Handle Success Rate by Nr Attempts
 p <- ggplot(data = df_hist[, (.N / nrow(df_hist)), by = nr_contacts_bin][order(nr_contacts_bin)], 
-                   aes(x = nr_contacts_bin, y = V1)) +
-                   geom_bar(stat = "identity", fill = 'grey') +
-                   geom_text(aes(label = nr_contacts_bin), vjust = 1.5, colour = "white")
+            aes(x = nr_contacts_bin, y = V1)) +
+  geom_bar(stat = "identity", fill = 'grey') +
+  geom_text(aes(label = nr_contacts_bin), vjust = 1.5, colour = "white")
 p = p + 
   aes(x = fct_inorder(nr_contacts_bin)) + 
   ggtitle('Distribution of Nr Attemps') + 
@@ -119,15 +139,15 @@ ggsave(filename = 'Distribution of Nr Attemps.png',
        scale = 1)
 # Call Center Handle Success Rate by Nr Attempts
 p <- ggplot(data = df_hist[, (sum(target) / .N), by = nr_contacts_bin][order(nr_contacts_bin)], 
-                   aes(x = nr_contacts_bin, y = V1)) +
-                   geom_bar(stat = "identity", fill = 'lightgreen') +
-                   geom_text(aes(label = nr_contacts_bin), vjust = 1.5, colour = "white")
+            aes(x = nr_contacts_bin, y = V1)) +
+  geom_bar(stat = "identity", fill = 'lightgreen') +
+  geom_text(aes(label = nr_contacts_bin), vjust = 1.5, colour = "white")
 p = p + 
-    aes(x = fct_inorder(nr_contacts_bin)) + 
-    ggtitle('Handle Success Rate by Nr Attempts') + 
-    theme(plot.title = element_text(hjust = 0.5)) +
-    xlab('Handle Success Rate (%)') +
-    ylab('Nr Attempts')
+  aes(x = fct_inorder(nr_contacts_bin)) + 
+  ggtitle('Handle Success Rate by Nr Attempts') + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab('Handle Success Rate (%)') +
+  ylab('Nr Attempts')
 ggsave(filename = 'Handle Success Rate by Nr Attempts.png', 
        width=20, height = 20, units = 'cm', 
        plot = p, 
@@ -144,10 +164,10 @@ p <- ggplot(data = df_hist[, .N / nrow(df_hist), by = hour_of_contact][order(hou
   geom_bar(stat = "identity", fill = 'grey') +
   geom_text(aes(label = hour_of_contact), vjust = 1.5, colour = "white")
 p = p + 
-    ggtitle('Distribution of Attempts per Hour') + 
-    theme(plot.title = element_text(hjust = 0.5)) +
-    xlab('Hour of Day') +
-    ylab('Relative frequency (%)')
+  ggtitle('Distribution of Attempts per Hour') + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab('Hour of Day') +
+  ylab('Relative frequency (%)')
 ggsave(filename = 'Distribution of Attempts per Hour.png', 
        width=20, height = 20, units = 'cm', 
        plot = p, 
@@ -196,11 +216,11 @@ p <- ggplot(data = df_hist[, .N / nrow(df_hist), by = day_of_week][order(day_of_
   geom_bar(stat = "identity", fill = 'grey') +
   geom_text(aes(label = day_of_week), vjust = 1.5, colour = "white")
 p = p + 
-    aes(x = fct_inorder(day_of_week, ordered = TRUE)) + 
-    ggtitle('Occupancy by Day of Week') + 
-    theme(plot.title = element_text(hjust = 0.5)) +
-    xlab('Day of Week') +
-    ylab('Relative frequency (%)')
+  aes(x = fct_inorder(day_of_week, ordered = TRUE)) + 
+  ggtitle('Occupancy by Day of Week') + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab('Day of Week') +
+  ylab('Relative frequency (%)')
 ggsave(filename = 'Occupancy_by_Day_of_Week.png', 
        width=20, height = 20, units = 'cm', 
        plot = p, 
@@ -233,10 +253,11 @@ p <- ggplot(data = df_hist[, .N / nrow(df_hist), by = diff_contacts_bin][order(d
   geom_bar(stat = "identity", fill = 'grey') +
   geom_text(aes(label = diff_contacts_bin), vjust = 1.5, colour = "white")
 p = p + 
-    ggtitle('Attempts by time interval between attempts') + 
-    theme(plot.title = element_text(hjust = 0.5)) +
-    xlab('Intervals between attempts') +
-    ylab('Relative frequency (%)')
+  aes(x = fct_inorder(diff_contacts_bin)) + 
+  ggtitle('Attempts by time interval between attempts') + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab('Intervals between attempts (Hours)') +
+  ylab('Relative frequency (%)')
 ggsave(filename = 'Attempts_by_interval_between_attempts.png', 
        width=20, height = 20, units = 'cm', 
        plot = p, 
@@ -244,17 +265,83 @@ ggsave(filename = 'Attempts_by_interval_between_attempts.png',
        scale = 1)
 # Call Center Success Rate by time interval between attempts
 p = ggplot(data = df_hist[, (sum(target) / .N), by = diff_contacts_bin][order(diff_contacts_bin)], 
-            aes(x = diff_contacts_bin, y = V1)) +
+           aes(x = diff_contacts_bin, y = V1)) +
   geom_bar(stat = "identity", fill = 'lightgreen') +
   geom_text(aes(label = diff_contacts_bin), vjust = 1.5, colour = "white")
 p = p + 
-    ggtitle('Success Rate by lag between attempts') + 
-    theme(plot.title = element_text(hjust = 0.5)) +
-    xlab('Intervals between attempts') +
-    ylab('Handle Success Rate (%)')
+  ggtitle('Success Rate by lag between attempts') + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab('Intervals between attempts (Hours)') +
+  ylab('Handle Success Rate (%)')
 ggsave(filename = 'Success_Rate_lag_between_attempts.png', 
        width=20, height = 20, units = 'cm', 
        plot = p, 
        device = 'png',
        scale = 1)
 
+
+# STATUS MAPPING
+handled = 'handled'
+rejected = c('rejected', 'dialing reject', 'dialing no ans', 'Cancelled', 'Reject')
+no_answer = c('no answer', 'NoAnswer', 'dialing no ans', 'Busy', 'machine', 'dialing machin')
+nuisance = c('Nuisance', 'dialing nuisan', 'nuisance')
+connected = c('Connected', 'connected hand')
+invalid = c('InvalidNumber', 'invalid number', 'dialing invali')
+other = c('Unknown', 'Other')
+
+df_hist[outcome %in% rejected, outcome := 'rejected']
+df_hist[outcome %in% no_answer, outcome := 'no_answer']
+df_hist[outcome %in% nuisance, outcome := 'nuisance']
+df_hist[outcome %in% connected, outcome := 'connected']
+df_hist[outcome %in% invalid, outcome := 'invalid']
+df_hist[outcome %in% other, outcome := 'other']
+
+df_hist[! outcome %in% c('rejected', 'no_answer', 'other', 
+                         'nuisance', 'connected', 'invalid', 
+                         'handled'), outcome := 'other']
+df_hist[outcome == 'connected', .N] / nrow(df_hist)
+df_hist[outcome == 'handled', .N] / nrow(df_hist)
+
+p = ggplot(data = df_hist[, .N / nrow(df_hist), by = outcome][order(-V1)], 
+           aes(x = outcome, y = V1)) +
+  geom_bar(stat = "identity", fill = 'royalblue1') +
+  geom_text(aes(label = outcome), vjust = 1.5, colour = "white")
+p = p + 
+  aes(x = fct_inorder(df_hist[, .N, by = outcome][order(-N)]$outcome, ordered = TRUE)) + 
+  ggtitle('Distribution of Outcomes') + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab('Outcome Label') +
+  ylab('% Nr Records')
+ggsave(filename = 'Nr_Records_per_outcome.png', 
+       width=20, height = 20, units = 'cm', 
+       plot = p, 
+       device = 'png',
+       scale = 1)
+
+
+# FLOW ANALYSIS
+df_hist[first_contact == 1, .N / nrow(df_hist[first_contact == 1]), by = outcome]
+df_hist[, lead_outcome := shift(outcome, n = 1, fill = -1, type = 'lead'), by = id_Cliente_A]
+df_hist[, lead_outcome_2rw := shift(outcome, n = 2, fill = -1, type = 'lead'), by = id_Cliente_A]
+df_hist[, lead_outcome_3rw := shift(outcome, n = 3, fill = -1, type = 'lead'), by = id_Cliente_A]
+
+# ALL STATUS
+df_hist[first_contact == 1, .N / nrow(df_hist[first_contact == 1]), by = outcome]
+
+# FLOWS - No Answer 
+denom = nrow(df_hist[first_contact == 1 & outcome == 'no_answer'])
+df_hist[first_contact == 1 & outcome == 'no_answer', 
+        .N / denom, by = lead_outcome]
+df_hist[first_contact == 1, .N]
+denom = nrow(df_hist[first_contact == 1 & outcome == 'no_answer' & lead_outcome == 'no_answer'])
+df_hist[first_contact == 1 & outcome == 'no_answer' & lead_outcome == 'no_answer', 
+        .N / denom, by = lead_outcome_2rw]
+
+# FLOWS - Rejected
+denom = nrow(df_hist[first_contact == 1 & outcome == 'rejected'])
+df_hist[first_contact == 1 & outcome == 'rejected', 
+        .N / denom, by = lead_outcome]
+df_hist[first_contact == 1, .N]
+denom = nrow(df_hist[first_contact == 1 & outcome == 'rejected' & lead_outcome == 'rejected'])
+df_hist[first_contact == 1 & outcome == 'rejected' & lead_outcome == 'rejected', 
+        .N / denom, by = lead_outcome_2rw]
