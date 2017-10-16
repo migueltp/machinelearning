@@ -5,6 +5,9 @@ library(caret)
 library(adabag)
 library(e1071)
 require(randomForest)
+library(xgboost)
+library(ROCR)
+
 
 setwd('~/Projects/machinelearning/Scraps/R scrapbook/') 
 source(file = paste(getwd(), '/nos_preprocess.R', sep = ''))
@@ -36,7 +39,7 @@ set.seed(1)
 
 
 ### NAIVE BAYES
-for (size in c(1000, 2000, 5000, 10000, 15000, 20000, 30000, 50000)) {
+for (size in c(2000, 10000, 50000, 100000)) {
   
   index_split = splitTrainData(data_obj = df_train, 
                                sample_size = size,
@@ -57,7 +60,7 @@ for (size in c(1000, 2000, 5000, 10000, 15000, 20000, 30000, 50000)) {
 }
 
 ### DEC TREE
-for (size in c(1000, 2000, 5000, 10000, 15000, 20000, 30000, 50000)) {
+for (size in c(2000, 10000, 50000, 100000)) {
   
   index_split = splitTrainData(data_obj = df_train, 
                                sample_size = size,
@@ -80,7 +83,7 @@ for (size in c(1000, 2000, 5000, 10000, 15000, 20000, 30000, 50000)) {
 }
 
 ### ADABOOST
-for (size in c(1000, 2000, 5000, 10000, 15000, 20000, 30000, 50000)) {
+for (size in c(2000, 10000, 50000, 100000)) {
   
   index_split = splitTrainData(data_obj = df_train, 
                                sample_size = size,
@@ -102,7 +105,7 @@ for (size in c(1000, 2000, 5000, 10000, 15000, 20000, 30000, 50000)) {
 }
 
 ### RAND FORESTS
-for (size in c(1000, 2000, 5000, 10000, 15000, 20000, 30000, 50000)) {
+for (size in c(2000, 10000, 50000, 100000)) {
   
   index_split = splitTrainData(data_obj = df_train, 
                                sample_size = size,
@@ -120,6 +123,37 @@ for (size in c(1000, 2000, 5000, 10000, 15000, 20000, 30000, 50000)) {
   }
   
   randf_res = rbind(randf_res, as.data.table(res))
+  
+}
+
+
+### XGBoost
+for (size in c(2000, 10000, 50000, 100000)) {
+  
+  index_split = splitTrainData(data_obj = df_train, 
+                               sample_size = size,
+                               train = train_ratio, 
+                               test = test_ratio, 
+                               validation = val_ratio)
+  
+  params = list(booster = 'gbtree',
+                max_depth = 30,
+                nthreads = 4,
+                eta = 0.5,
+                objective = 'binary:logistic', 
+                eval.metric = 'auc',
+                verbose = TRUE)
+  
+  res = xgboostModel(trainData = as.data.frame(df_train[index_split[['train']]]), 
+                     testData = as.data.frame(df_train[index_split[['test']]]), 
+                     misclassCosts = 0.5,
+                     kwd_args = params)['results']
+  
+  if (! exists("xgb_res")) {
+    xgb_res = as.data.table(res)
+  }
+  
+  xgb_res = rbind(xgb_res, as.data.table(res))
   
 }
 
@@ -155,28 +189,28 @@ ggsave(filename = 'ROC curves Balanced.png',
 
 
 ### Adaboost, Rand Forest
-naive_res = naive_res[order(`results.True Positive Rate`)]
-dt_res = dt_res[order(`results.True Positive Rate`)]
+adab_res = adab_res[order(`results.True Positive Rate`)]
+randf_res = randf_res[order(`results.True Positive Rate`)]
 
-p <- ggplot(data = naive_res, 
-            aes(x = naive_res$`results.False Positive Rate`,y = naive_res$`results.True Positive Rate`)) +
+p <- ggplot(data = adab_res, 
+            aes(x = adab_res$`results.False Positive Rate`,y = adab_res$`results.True Positive Rate`)) +
   xlim(0, 1) + ylim(0, 1) +
   geom_line(stat = 'identity', colour='green') +
   geom_abline(intercept = 0, slope = 1, show.legend = NA) + 
-  geom_text(aes(x = 0.20, y = 0.45, label = "Naive B."), colour = 'green', show.legend=FALSE)
+  geom_text(aes(x = 0.20, y = 0.45, label = "Adaboost DT"), colour = 'green', show.legend=FALSE)
 
 p = p +
-  geom_line(aes(x = dt_res$`results.False Positive Rate`, 
-                y = dt_res$`results.True Positive Rate`, 
-                colour='red'), data = dt_res) +
-  geom_text(aes(x = 0.38, y = 0.55, label = "Dec Tree"), colour = 'red', show.legend=FALSE)
+  geom_line(aes(x = randf_res$`results.False Positive Rate`, 
+                y = randf_res$`results.True Positive Rate`, 
+                colour='red'), data = randf_res) +
+  geom_text(aes(x = 0.38, y = 0.55, label = "Rand Forest"), colour = 'red', show.legend=FALSE)
 
 p = p + 
-  ggtitle('ROC curves for Balanced Data') + 
+  ggtitle('ROC curves for Boosting & Bagging') + 
   theme(plot.title = element_text(hjust = 0.5)) +
   xlab('False Positive Rate') +
   ylab('True Positive Rate')
-ggsave(filename = 'ROC curves Balanced.png', 
+ggsave(filename = 'ROC curves Boosting & Bagging', 
        width=20, height = 20, units = 'cm', 
        plot = p, 
        device = 'png',
