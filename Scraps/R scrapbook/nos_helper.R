@@ -269,6 +269,7 @@ p = ggplot(data = df_hist[, (sum(target) / .N), by = diff_contacts_bin][order(di
   geom_bar(stat = "identity", fill = 'lightgreen') +
   geom_text(aes(label = diff_contacts_bin), vjust = 1.5, colour = "white")
 p = p + 
+  aes(x = fct_inorder(diff_contacts_bin)) + 
   ggtitle('Success Rate by lag between attempts') + 
   theme(plot.title = element_text(hjust = 0.5)) +
   xlab('Intervals between attempts (Hours)') +
@@ -345,3 +346,161 @@ df_hist[first_contact == 1, .N]
 denom = nrow(df_hist[first_contact == 1 & outcome == 'rejected' & lead_outcome == 'rejected'])
 df_hist[first_contact == 1 & outcome == 'rejected' & lead_outcome == 'rejected', 
         .N / denom, by = lead_outcome_2rw]
+
+
+
+### MODEL PLOTS
+# PLOT SAMPLE SIZE VS ACCURACY
+# naive_res_unbalanc = naive_res
+# dt_res_unbalanc = dt_res
+# rand_for_unbalanc = randf_res
+# xgb_res_unbalanc = xgb_res
+# NAIVE BAYES
+naive_res = naive_res[order(`results.Nr_Train_Cases`)]
+p <- ggplot(data = naive_res, 
+            aes(x = naive_res[, results.Nr_Train_Cases], y = naive_res$`results.Train Error`)) +
+  ylim(0, 1) +
+  geom_line(stat = 'identity', colour='green')
+p = p +
+  geom_line(aes(x = naive_res$results.Nr_Train_Cases, 
+                y = naive_res$`results.Test Error`, 
+                colour='red'), data = naive_res) +
+  theme(legend.position="none") +
+  geom_text(aes(x = 60000, y = 0.10, label = "Train Error"), colour = 'green', show.legend=FALSE) +
+  geom_abline(intercept = 0.14, slope = 0, show.legend = NA, linetype="dotted")
+p = p + 
+  ggtitle('Naive Bayes - Error Rate vs Sample Size') + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab('Training sample size') +
+  ylab('Error Rate (%)') +
+  geom_text(aes(x = 60000, y = 0.25, label = "Test Error"), colour = 'red', show.legend=FALSE)
+ggsave(filename = 'Sample Size vs Error Rate - Naive Bayes(unbalance).png', 
+       width=20, height = 20, units = 'cm', 
+       plot = p, 
+       device = 'png',
+       scale = 1)
+
+# DEC TREE
+dt_res_plot = dt_res[9:12][order(`results.Nr_Train_Cases`)]
+p <- ggplot(data = dt_res_plot, 
+            aes(x = dt_res_plot[, results.Nr_Train_Cases], y = dt_res_plot$`results.Train Error`)) +
+  ylim(0, 1) +
+  geom_line(stat = 'identity', colour='green') +
+  geom_text(aes(x = 60000, y = 0.10, label = "Train Error"), colour = 'green', show.legend=FALSE)
+p = p +
+  geom_line(aes(x = dt_res_plot$results.Nr_Train_Cases, 
+                y = dt_res_plot$`results.Test Error`, 
+                colour='red'), data = dt_res_plot) +
+  theme(legend.position="none") +
+  geom_text(aes(x = 60000, y = 0.23, label = "Test Error"), colour = 'red', show.legend=FALSE) +
+  geom_abline(intercept = 0.14, slope = 0, show.legend = NA, linetype="dotted")
+p = p + 
+  ggtitle('Decision Tree - Error Rate vs Sample Size') + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab('Training sample size') +
+  ylab('Error Rate (%)')
+ggsave(filename = 'Sample Size vs Error Rate - Dec Tree(unbalance).png', 
+       width=20, height = 20, units = 'cm', 
+       plot = p, 
+       device = 'png',
+       scale = 1)
+
+# RAND FOREST
+randf_res = randf_res[order(`results.Nr_Train_Cases`)]
+p <- ggplot(data = randf_res, 
+            aes(x = randf_res[, results.Nr_Train_Cases], y = randf_res$`results.Train Error`)) +
+  ylim(0, 1) +
+  geom_line(stat = 'identity', colour='green') +
+  geom_text(aes(x = 60000, y = 0.10, label = "Train Error"), colour = 'green', show.legend=FALSE)
+p = p +
+  geom_line(aes(x = randf_res$results.Nr_Train_Cases, 
+                y = randf_res$`results.Test Error`, 
+                colour='red'), data = randf_res) +
+  theme(legend.position="none") +
+  geom_text(aes(x = 60000, y = 0.23, label = "Test Error"), colour = 'red', show.legend=FALSE) +
+  geom_abline(intercept = 0.14, slope = 0, show.legend = NA, linetype="dotted")
+p = p + 
+  ggtitle('Rand Forest - Error Rate vs Sample Size') + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab('Training sample size') +
+  ylab('Error Rate (%)')
+ggsave(filename = 'Sample Size vs Error Rate - Rand Forest(unbalance) 200 trees.png', 
+       width=20, height = 20, units = 'cm', 
+       plot = p, 
+       device = 'png',
+       scale = 1)
+
+
+
+
+# PLOT ROC CURVES
+
+roc_res = rbind(roc_res, data.table('model' = 'DecTree', 'auc' = 1, 'TPR' = 1, 'FPR' = 1, 'missclass' = 1))
+roc_res = rbind(roc_res, data.table('model' = 'RandForest', 'auc' = 1, 'TPR' = 1, 'FPR' = 1, 'missclass' = 1))
+p <- ggplot(data = roc_res[model == 'DecTree'], 
+            aes(x = roc_res[model == 'DecTree', FPR],y = roc_res[model == 'DecTree', TPR])) +
+  xlim(0, 1) + ylim(0, 1) +
+  geom_line(stat = 'identity', colour='green') +
+  geom_abline(intercept = 0, slope = 1, show.legend = NA) + 
+  geom_text(aes(x = 0.20, y = 0.45, label = "Dec Tree"), colour = 'green', show.legend=FALSE)
+
+p = p +
+  geom_line(aes(x = roc_res[model == 'RandForest', FPR], 
+                y = roc_res[model == 'RandForest', TPR], 
+                colour='red'), data = roc_res[model == 'RandForest']) +
+  geom_text(aes(x = 0.38, y = 0.55, label = "Rand Forest"), colour = 'red', show.legend=FALSE)
+
+p = p + 
+  ggtitle('ROC curves') + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab('False Positive Rate') +
+  ylab('True Positive Rate')
+ggsave(filename = 'ROC curves Balanced.png', 
+       width=20, height = 20, units = 'cm', 
+       plot = p, 
+       device = 'png',
+       scale = 1)
+
+
+### TEST DATA CALL CENTER OCCUPANCY
+table(df_test$Vote)
+df_test[, Vote:= ifelse(NO > 0.75, 0, 1)]
+df_test_yes = df_test[Vote == 1]
+
+p <- ggplot(data = df_test_yes[, .N / nrow(df_test_yes), by = hour_of_contact][order(hour_of_contact)], 
+            aes(x = hour_of_contact, y = V1)) +
+  geom_bar(stat = "identity", fill = 'grey') +
+  geom_text(aes(label = hour_of_contact), vjust = 1.5, colour = "white")
+p = p + 
+  ggtitle('Test Data Distribution of Attempts per Hour') + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab('Hour of Day') +
+  ylab('Relative frequency (%)')
+ggsave(filename = 'Test Data Distribution of Attempts per Hour.png', 
+       width=20, height = 20, units = 'cm', 
+       plot = p, 
+       device = 'png',
+       scale = 1)
+
+
+# Call Center Occupancy by Day of Week
+# Call Center Success Rate by Day of Week
+df_test_yes$day_of_week <- factor(df_test_yes$day_of_week, levels= c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"))
+p <- ggplot(data = df_test_yes[, .N / nrow(df_test_yes), by = day_of_week][order(day_of_week)], 
+            aes(x = day_of_week, y = V1)) +
+  geom_bar(stat = "identity", fill = 'grey') +
+  geom_text(aes(label = day_of_week), vjust = 1.5, colour = "white")
+p = p + 
+  ggtitle('Test Data Occupancy by Day of Week') + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab('Day of Week') +
+  ylab('Relative frequency (%)')
+ggsave(filename = 'Test Data Occupancy_by_Day_of_Week.png', 
+       width=20, height = 20, units = 'cm', 
+       plot = p, 
+       device = 'png',
+       scale = 1)
+
+
+df_hist[target == 1, mean(duracao) / 60]
+df_hist[target == 0, mean(duracao) / 60,by = day_of_week]

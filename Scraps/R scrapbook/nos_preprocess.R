@@ -128,19 +128,20 @@ splitTrainData = function(data_obj, sample_size, train, test, validation) {
 
   print('Splitting data to train, test and validation - Start')
   set.seed(1)
+  
+  population = seq(1, nrow(data_obj), 1)
+  
+  test_sample = sample(population, size = floor(nrow(data_obj) * test), replace = FALSE)
+  population = population[-test_sample]
 
-  if (sample_size > nrow(data_obj)) {
+  if (sample_size > length(population)) {
     print('Sample Size > Data Population. Input diff sample size')
     break
   }
   
-  population = seq(1, nrow(data_obj), 1)
   train_sample = sample(population, size = floor(sample_size * train), replace = FALSE)
-
   population = population[-train_sample]
-  test_sample = sample(population, size = floor(sample_size * test), replace = FALSE)
-
-  population = population[-test_sample]
+  
   validation_sample = sample(population, size = floor(sample_size * validation), replace = FALSE)
 
   indexes = list(train_sample, test_sample, validation_sample)
